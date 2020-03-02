@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <wait.h>
 
 char* prompt_line(void){
     char* command;
@@ -23,6 +24,27 @@ char **addargs(char **totalArgs, char *remainingCommand,int index) {
     return totalArgs;
 }
 
+void cmdExec(char* command, char** args){
+    pid_t  childPID;
+    childPID = fork();
+    int cStatus;
+
+    if(childPID ==0){
+        execvp(command,args);
+        exit(0);
+    } else{
+        /* This is run by the parent.  Wait for the child
+           to terminate. */
+
+        do {
+            pid_t tpid = wait(&cStatus);
+            if(tpid != childPID) process_terminated(tpid);
+        } while(tpid != childPID);
+
+        return child_status;
+    }
+}
+
 void hashLoop(){
     int status =1;
     while (status){
@@ -35,7 +57,7 @@ void hashLoop(){
             printf("%s\n", mcommand);
             char **args = (char**)malloc(sizeof(char**));
             args = addargs(args,mcommand,0);
-            execl("/bin/sh","sh","-c",mcommand);
+            cmdExec(mcommand,args);
         }
         free(tcommand); //Free memory when not immediately needed
     }
